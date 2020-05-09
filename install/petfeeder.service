@@ -1,0 +1,11 @@
+[Unit]
+Description=Python Pet Feeder
+
+[Install]
+WantedBy=default.target
+
+[Service]
+WorkingDirectory=/opt
+EnvironmentFile=/opt/envfile
+ExecStart=/opt/venv/bin/python /opt/petfeeder.py
+Restart=always
