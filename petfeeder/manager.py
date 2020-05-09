@@ -39,6 +39,9 @@ class Manager(object):
             )
             self.feeder.feed(kwargs["servings"])
         if action == "add_event":
+            info("Adding event %s at %s" % (
+                kwargs["event"].name, kwargs["event"].time)
+            )
             self.scheduler.add_recurring(kwargs["event"])
         if action == "remove_event":
             self.scheduler.del_recurring(kwargs["event"])
@@ -48,7 +51,7 @@ class Manager(object):
     def handle_event(self, event):
         info("Event occurred: %s" % event)
         if event.__class__ == events.Meal:
-            self.action("feed", event.servings)
+            self.action("feed", servings=event.servings)
         if event.__class__ == events.HealthCheck:
             event.run()
 
@@ -81,7 +84,7 @@ class Web():
         })
 
         cherrypy.config.update({
-            'engine.autoreload.on': False,  # Enable for development
+            # 'engine.autoreload.on': False,  # Enable for development
             'log.access_file': '',
             'log.error_file': '',
             'log.screen': False,
