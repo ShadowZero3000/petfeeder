@@ -180,16 +180,22 @@ class MealEndpoint(object):
         try:
             name = input_json["name"]
             time = input_json["time"]
-            servings = input_json["servings"]
+            servings = int(input_json["servings"])
         except KeyError as e:
             message = "Missing key: %s" % e
             raise cherrypy.HTTPError(400, message=message)
+        except ValueError:
+            message = "Invalid input"
+            raise cherrypy.HTTPError(400, message=message)
 
-        event = events.Meal(
-            TimeConverter().sanitize_time_string(time),
-            servings=servings,
-            name=name
-        )
+        try:
+            event = events.Meal(
+                TimeConverter().sanitize_time_string(time),
+                servings=servings,
+                name=name
+            )
+        except ValueError as e:
+            raise cherrypy.HTTPError(400, message=str(e))
 
         if event:
             self.manager.action("add_event", event=event)
