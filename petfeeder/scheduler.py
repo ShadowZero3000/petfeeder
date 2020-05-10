@@ -5,6 +5,7 @@ from logging import info, debug
 import threading  # Allow for threading
 
 from time import sleep
+import re
 
 from petfeeder.events import Meal, HealthCheck
 from petfeeder.store import Store
@@ -71,11 +72,41 @@ class TimeConverter():
         self.tz = pytz.timezone(self.tz_string)
 
     def time_string_to_timestamp(self, time_string):
-        try:
-            timestamp = pendulum.from_format(time_string, 'h:mm A')
-        # TODO: Narrow down the handled exceptions here
-        except Exception:
-            timestamp = pendulum.from_format(time_string, 'H:mm')
+        while True:  # Allows for short circuiting
+            info("Checking time string")
+            info(time_string)
+
+            # timestamp with AM/PM
+            match = re.match(r"\d{1,2}:\d{2} [AaPp][Mm]", time_string)
+            if match:
+                info("Matches am/pm")
+                timestamp = pendulum.from_format(time_string, 'h:mm A')
+                break
+
+            # full time with milliseconds
+            match = re.match(r"\d{1,2}:\d{2}:\d{2}\.\d+", time_string)
+            if match:
+                info("Matches full")
+                timestamp = pendulum.from_format(time_string, 'H:mm:ss.S')
+                break
+
+            # timestamp missing milliseconds
+            match = re.match(r"\d{1,2}:\d{2}:\d{2}", time_string)
+            if match:
+                info("Matches no milli")
+                timestamp = pendulum.from_format(time_string, 'H:mm:ss')
+                break
+
+            # timestamp military hours and minutes
+            match = re.match(r"\d{1,2}:\d{2}", time_string)
+            if match:
+                info("Matches no second")
+                timestamp = pendulum.from_format(time_string, 'H:mm')
+                break
+
+            # unknown timestamp format
+            raise Exception("Invalid time string")
+        info(timestamp)
         return timestamp.replace(tzinfo=self.tz).astimezone(pytz.utc)
 
     def timestamp_to_local_string(self, timestamp, fmt="%-I:%M %p"):
