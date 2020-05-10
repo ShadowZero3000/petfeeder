@@ -19,7 +19,7 @@ class Manager(object):
         # Raspi pin to activate to trigger the feeder
         feed_pin = int(os.getenv('FEED_PIN') or 11)
 
-        self.feeder = initialize_feeder(listen_pin, feed_pin)
+        self.feeder = initialize_feeder(self, listen_pin, feed_pin)
 
         # TODO: Split this out into its own thing so we can have multiple
         self.chat = Chat(self)
@@ -47,6 +47,10 @@ class Manager(object):
             self.scheduler.del_recurring(kwargs["event"])
         if action == "update_event":
             self.scheduler.update_recurring(kwargs["event"])
+        if action == "warning":
+            self.chat.message(
+                "WARNING: %s" % kwargs["message"]
+            )
 
     def handle_event(self, event):
         info("Event occurred: %s" % event)

@@ -35,11 +35,12 @@ class ReedSwitch(threading.Thread):
 
 # Not sure this needs a thread
 class Feeder():
-    def __init__(self, feed_pin, read_pin, max_cycle_time=5):
+    def __init__(self, manager, feed_pin, read_pin, max_cycle_time=5):
         self._feed_pin = feed_pin
         self._read_pin = read_pin
         self._reed_switch = ReedSwitch(self._read_pin)
         self._max_cycle_time = max_cycle_time
+        self.manager = manager
 
     def wait_until_feed_stops(self):
         while not self._reed_switch.triggered:
@@ -52,7 +53,6 @@ class Feeder():
             self.activate_feeder()
 
     def activate_feeder(self):
-        # TODO: Make sure that if it runs too long we do something about that
         try:
             debug("Starting feed motor")
             GPIO.output(self._feed_pin, GPIO.LOW)
@@ -71,6 +71,7 @@ class Feeder():
         except Exception as err:
             GPIO.output(self._feed_pin, GPIO.HIGH)
             error("Error encountered. Motor stopped. Error: %s", err)
+            self.manager.action("warning", message="Feed error: %s" % err)
 
 
 # Deprecated, but maybe still useful code
@@ -97,11 +98,11 @@ class Feeder():
 #     print("Servings total: %s" % servings)
 #     return servings
 
-def initialize_feeder(listen_pin, feed_pin):
+def initialize_feeder(manager, listen_pin, feed_pin):
     GPIO.setwarnings(False)    # Ignore warning for now
     GPIO.setmode(GPIO.BOARD)   # Use physical pin numbering
 
     # Make sure it's off when we start
     GPIO.setup(feed_pin, GPIO.OUT, initial=GPIO.HIGH)
 
-    return Feeder(feed_pin, listen_pin)
+    return Feeder(manager, feed_pin, listen_pin)
