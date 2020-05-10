@@ -22,20 +22,27 @@ A Healthchecks.io account (optional) for alerts when it goes down.
 ## Instructions
 
 - Set up your Pi as per usual
-- Checkout this repo on the Pi in /opt (Or elsewhere, but up to you to fix paths)
-- Install Python 3
-- Pip install virtualenv
-- Enter the virtualenv and pip install -r requirements.txt
-- Run bash /opt/install/install.sh, or do what it does yourself (Currently very little)
-- Edit /opt/envfile, put in:
+- Checkout this repo on the Pi in /opt/petfeeder (Or elsewhere, but up to you to fix paths)
+- Edit /opt/petfeeder/envfile, put in:
 
     ```
     TELEGRAM_API_TOKEN=_fill this in_
     TELEGRAM_BROADCAST_ID=_fill this in_
     ```
+- Run bash /opt/petfeeder/install/install.sh, or do what it does yourself
 - Reboot the pi and cross your fingers (Or `systemctl daemon-reload` and `systemctl start petfeeder`)
 
 
 ## TODO
 
 There's a todo file, but also I need to write more documentation, specifically how to wire up the circuitry.
+
+## Important security notice
+
+At the moment this does ZERO to verify that users in Telegram are authorized to do things, so if anyone chats up your bot, they could....feed your pets, I guess. (Or delete your schedules, or get your healthcheck unique url). All of this seems sufficiently low risk that I'll come back and fix it later (Adding a simple "What's the password" type thing).
+
+However, and more importantly: This starts up a webserver on the Raspberry Pi on port 80 (Not SSL because I'm lazy) which grants full access to manage/read schedules and activate the feeder. DO NOT PUT THIS ON THE FUCKING INTERNET.
+
+I take zero responsibility for any "bad things" that may occur due to this.
+
+Also, it doesn't currently do a great job of validating inputs, so if you request negative feedings, it won't start pumping your cat's stomach...it'll probably crash, or do nothing. :shrug:

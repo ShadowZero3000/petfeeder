@@ -2,5 +2,5 @@
 - Add edit functionality to the web UI
 - Add telegram credential edit to the web UI (and remove envfile)
 - Make the pins load from something other than environment maybe?
-- Update the service/install bit
 - Add image recognition to verify that food was dispensed
+- Add "authenticated users" to the bot so that any random stranger can't start the feeder
