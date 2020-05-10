@@ -1,42 +1,13 @@
-function parseFailure(error) {
-  vm.showModal(error.response.data)
-}
+const router=new VueRouter({
+  routes:[
+    {path:'/',name:'home',component: Vue.component('meals')},
+    {path:'/meals',name:'meals',component: Vue.component('meals'),},
+    {path:'/healthchecks',name:'healthchecks',component: Vue.component('healthchecks'),},
+    {path:'/settings',name:'settings',component: Vue.component('settings'),}
+  ]
+})
 
 var vm = new Vue({
-  el: '#vuewrapper',
-  data () {
-    return {
-      errorMessage: null,
-      events: {}
-    }
-  },
-  computed: {
-    eventsByType: function() {
-      return _.groupBy(this.events, (item) => item.type);
-    }
-  },
-  mounted () {
-    this.refreshData()
-  },
-  methods: {
-    feed() {
-      axios
-        .get('//'+window.location.host+'/api/feed')
-        .then(response => {
-          me = this
-        })
-    },
-    refreshData() {
-      axios
-        .get('//'+window.location.host+'/api/event')
-        .then(response => {
-          me = this
-          this.events = response.data
-        })
-    },
-    showModal(str) {
-      this.errorMessage = str
-      this.$refs.errorModal.show()
-    }
-  }
+  router,
+  el: '#vuewrapper'
 })
