@@ -56,12 +56,19 @@ class Scheduler(threading.Thread):
         debug("Currently scheduled jobs: %s" % schedule.jobs)
 
     def update_recurring(self, event):
+        # The event itself has already been changed, just tell the scheduler
         info("Updating job: %s" % event)
         schedule.clear(event.id)
         self._add_recurring_to_scheduler(event)
 
         self._store.set("scheduled_events", self.scheduled_events)
         debug("Currently scheduled jobs: %s" % schedule.jobs)
+
+    def get_event(self, needle):
+        for event in self.scheduled_events:
+            if event.id == needle.id:
+                return event
+        return None
 
 
 class TimeConverter():
@@ -73,34 +80,27 @@ class TimeConverter():
 
     def time_string_to_timestamp(self, time_string):
         while True:  # Allows for short circuiting
-            info("Checking time string")
-            info(time_string)
-
             # timestamp with AM/PM
             match = re.match(r"\d{1,2}:\d{2} [AaPp][Mm]", time_string)
             if match:
-                info("Matches am/pm")
                 timestamp = pendulum.from_format(time_string, 'h:mm A')
                 break
 
             # full time with milliseconds
             match = re.match(r"\d{1,2}:\d{2}:\d{2}\.\d+", time_string)
             if match:
-                info("Matches full")
                 timestamp = pendulum.from_format(time_string, 'H:mm:ss.S')
                 break
 
             # timestamp missing milliseconds
             match = re.match(r"\d{1,2}:\d{2}:\d{2}", time_string)
             if match:
-                info("Matches no milli")
                 timestamp = pendulum.from_format(time_string, 'H:mm:ss')
                 break
 
             # timestamp military hours and minutes
             match = re.match(r"\d{1,2}:\d{2}", time_string)
             if match:
-                info("Matches no second")
                 timestamp = pendulum.from_format(time_string, 'H:mm')
                 break
 

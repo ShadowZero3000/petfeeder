@@ -34,30 +34,43 @@ class Manager(object):
 
     def action(self, action, **kwargs):
         if action == "feed":
-            self.chat.message(
-                "Activating feeder %s times" % str(kwargs["servings"])
-            )
+            if kwargs.get("notify", False):
+                self.chat.message(
+                    "Activating feeder for %s - %s times" % (
+                        kwargs["name"], str(kwargs["servings"])
+                    )
+                )
             self.feeder.feed(kwargs["servings"])
+
         if action == "add_event":
             info("Adding event %s at %s" % (
                 kwargs["event"].name, kwargs["event"].time)
             )
             self.scheduler.add_recurring(kwargs["event"])
+
         if action == "remove_event":
             self.scheduler.del_recurring(kwargs["event"])
+
         if action == "update_event":
             self.scheduler.update_recurring(kwargs["event"])
+
         if action == "warning":
             self.chat.message(
                 "WARNING: %s" % kwargs["message"]
             )
 
-    def handle_event(self, event):
-        info("Event occurred: %s" % event)
-        if event.__class__ == events.Meal:
-            self.action("feed", servings=event.servings)
-        if event.__class__ == events.HealthCheck:
+        if action == "healthcheck":
+            event = kwargs["event"]
+            if event.notify:
+                self.chat.message("Activating healthcheck %s" % event.name)
             event.run()
+
+    def handle_event(self, event):
+        if event.__class__ == events.Meal:
+            self.action("feed", **event.details())
+
+        if event.__class__ == events.HealthCheck:
+            self.action("healthcheck", {"event": event})
 
     def get_events(self):
         return self.scheduler.scheduled_events

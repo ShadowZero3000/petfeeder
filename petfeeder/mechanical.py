@@ -104,5 +104,3 @@ def initialize_feeder(manager, listen_pin, feed_pin):
 
     # Make sure it's off when we start
     GPIO.setup(feed_pin, GPIO.OUT, initial=GPIO.HIGH)
-
-    return Feeder(manager, feed_pin, listen_pin)

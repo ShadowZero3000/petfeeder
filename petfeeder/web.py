@@ -33,7 +33,7 @@ class APIServer(object):
 
     def __init__(self, manager):
         self.endpoints = {
-            "event": EventEndpoint(manager),
+            "event": EventPrimaryEndpoint(manager),
             "feed": FeedEndpoint(manager)
         }
 
@@ -65,7 +65,7 @@ class FeedEndpoint(object):
 
 @cherrypy.tools.json_in()
 @cherrypy.tools.json_out()
-class EventEndpoint(object):
+class EventPrimaryEndpoint(object):
     exposed = True
 
     def __init__(self, manager):
@@ -76,7 +76,6 @@ class EventEndpoint(object):
         }
 
     def _cp_dispatch(self, vpath):
-        logging.info(vpath)
         if len(vpath) > 0 and vpath[0].lower() == "meal":
             return self.endpoints["meal"]
 
@@ -113,16 +112,30 @@ class EventEndpoint(object):
 @cherrypy.tools.json_in()
 @cherrypy.tools.json_out()
 @cherrypy.popargs("event_id")
-class MealEndpoint(object):
+class EventCRUD(object):
     exposed = True
 
-    def __init__(self, manager):
+    def __init__(self, manager, eventClass):
         self.manager = manager
+        self._parameters = ['name', 'time']
+        self.eventClass = eventClass
+
+    def sanitize(self, key, value):
+        # Boilerplate. Raise errors if invalid, otherwise sanitize
+        # Implementations should utilize super()
+        if key.lower() == "time":
+            return TimeConverter().sanitize_time_string(value)
+        if key.lower() == "name":
+            if len(value) > 64 or len(value) == 0:
+                raise Exception(
+                    "Invalid length for 'name'. Must be 64 characters or less."
+                )
+        return value
 
     def GET(self, event_id=None):
         result = []
         for event in self.manager.get_events():
-            if event.__class__ != events.Meal:
+            if event.__class__ != self.eventClass:
                 continue
             if event_id is None or event_id == str(event.id):
                 result.append({
@@ -139,30 +152,31 @@ class MealEndpoint(object):
 
         event_to_edit = None
         for event in self.manager.get_events():
-            if event.__class__ != events.Meal:
+            if event.__class__ != self.eventClass:
                 continue
             if event_id is None or event_id == str(event.id):
                 event_to_edit = event
                 break
+        if event_to_edit is None:
+            message = "Event not found"
+            raise cherrypy.HTTPError(400, message=message)
 
         input_json = cherrypy.request.json
 
         changes = False
         for key, value in input_json.items():
-            if (key.lower() == "time" and value != event_to_edit.time):
-                event_to_edit.time = (
-                    TimeConverter().sanitize_time_string(value)
-                )
-                changes = True
-                print("%s changed: '%s' to '%s'" % (
-                    key, event_to_edit[key.lower()], value)
-                )
-            if key.lower() == "name" and value != event_to_edit.name:
-                event_to_edit.name = value
-                changes = True
-            if key.lower() == "servings" and value != event_to_edit.servings:
-                event_to_edit.servings = value
-                changes = True
+            for param in self._parameters:
+                if key.lower() != param:
+                    continue
+                try:
+                    sanitized_value = self.sanitize(param, value)
+                except Exception as e:
+                    message = "Invalid value for %s: %s" % (key, str(e))
+                    raise cherrypy.HTTPError(400, message=message)
+
+                if sanitized_value != getattr(event_to_edit, param):
+                    setattr(event_to_edit, param, sanitized_value)
+                    changes = True
 
         if changes:
             self.manager.action("update_event", event=event_to_edit)
@@ -177,23 +191,18 @@ class MealEndpoint(object):
 
         input_json = cherrypy.request.json
 
+        new_event = {}
+        for key, value in input_json.items():
+            for param in self._parameters:
+                if key.lower() != param:
+                    continue
+                try:
+                    new_event[param] = self.sanitize(param, value)
+                except Exception as e:
+                    message = "Invalid value for %s: %s" % (key, str(e))
+                    raise cherrypy.HTTPError(400, message=message)
         try:
-            name = input_json["name"]
-            time = input_json["time"]
-            servings = int(input_json["servings"])
-        except KeyError as e:
-            message = "Missing key: %s" % e
-            raise cherrypy.HTTPError(400, message=message)
-        except ValueError:
-            message = "Invalid input"
-            raise cherrypy.HTTPError(400, message=message)
-
-        try:
-            event = events.Meal(
-                TimeConverter().sanitize_time_string(time),
-                servings=servings,
-                name=name
-            )
+            event = self.eventClass(**new_event)
         except ValueError as e:
             raise cherrypy.HTTPError(400, message=str(e))
 
@@ -206,85 +215,40 @@ class MealEndpoint(object):
 @cherrypy.tools.json_in()
 @cherrypy.tools.json_out()
 @cherrypy.popargs("event_id")
-class HealthCheckEndpoint(object):
+class MealEndpoint(EventCRUD):
     exposed = True
 
     def __init__(self, manager):
+        super().__init__(manager, events.Meal)
+        self._parameters += ["servings", "notify"]
         self.manager = manager
 
-    def GET(self, event_id=None):
-        result = []
-        for event in self.manager.get_events():
-            if event.__class__ != events.HealthCheck:
-                continue
-            if event_id is None or event_id == str(event.id):
-                result.append({
-                    "type": event.__class__.__name__,
-                    "id": str(event.id),
-                    "details": event.details()
-                })
-        return result
+    def sanitize(self, key, value):
+        if key == "notify":
+            return bool(value)
+        if key == "servings":
+            return int(value)
+        return super().sanitize(key, value)
 
-    def PUT(self, event_id=None):
-        if event_id is None:
-            message = "Must select event to edit"
-            raise cherrypy.HTTPError(406, message=message)
 
-        event_to_edit = None
-        for event in self.manager.get_events():
-            if event.__class__ != events.HealthCheck:
-                continue
-            if event_id is None or event_id == str(event.id):
-                event_to_edit = event
-                break
+@cherrypy.tools.json_in()
+@cherrypy.tools.json_out()
+@cherrypy.popargs("event_id")
+class HealthCheckEndpoint(EventCRUD):
+    exposed = True
 
-        input_json = cherrypy.request.json
+    def __init__(self, manager):
+        super().__init__(manager, events.HealthCheck)
+        self._parameters += ["check_id", "notify"]
+        self.manager = manager
 
-        changes = False
-        for key, value in input_json.items():
-            if (key.lower() == "time" and value != event_to_edit.time):
-                event_to_edit.time = (
-                    TimeConverter().sanitize_time_string(value)
+    def sanitize(self, key, value):
+        if key == "notify":
+            return bool(value)
+        if key == "check_id":
+            if len(value) > 128 or len(value) == 0:
+                raise Exception(
+                    "Invalid length for 'check_id'. Must be between 1 and 64."
                 )
-                changes = True
-                print("%s changed: '%s' to '%s'" % (
-                    key, event_to_edit[key.lower()], value)
-                )
-            if key.lower() == "name" and value != event_to_edit.name:
-                event_to_edit.name = value
-                changes = True
-            if key.lower() == "check_id" and value != event_to_edit.check_id:
-                event_to_edit.check_id = value
-                changes = True
-
-        if changes:
-            self.manager.action("update_event", event=event_to_edit)
-
-        result = {"success": True, "changes": changes}
-        return result
-
-    def POST(self, event_id=None):
-        if event_id is not None:
-            message = "May not create records at subpath"
-            raise cherrypy.HTTPError(406, message=message)
-
-        input_json = cherrypy.request.json
-
-        try:
-            name = input_json["name"]
-            time = input_json["time"]
-            check_id = input_json["check_id"]
-
-            event = events.HealthCheck(
-                TimeConverter().sanitize_time_string(time),
-                check_id=check_id,
-                name=name
-            )
-        except KeyError as e:
-            message = "Missing key: %s" % e
-            raise cherrypy.HTTPError(400, message=message)
-
-        if event:
-            self.manager.action("add_event", event=event)
-            return {"success": True, "event_id": str(event.id)}
-        return {"success": False}
+            return value
+        return super().sanitize(key, value)
