@@ -6,6 +6,7 @@ Vue.component('meals', {
         {"label":"Name","key":"details.name"},
         {"label":"Time","key":"details.time"},
         {"label":"Servings","key":"details.servings"},
+        {"label":"Notify","key":"notify"},
         {"label":"", "key":"details"}
       ],
       editorMode: null,
@@ -13,7 +14,8 @@ Vue.component('meals', {
       mealEditor: {
         "name": "",
         "time": "",
-        "servings": ""
+        "servings": "",
+        "notify": false
       },
       mealEditorState: {},
       errorString: null
@@ -146,6 +148,10 @@ Vue.component('meals', {
     </div>
     <div v-if="events.length > 0">
       <b-table striped :items="events" :fields="fields" >
+        <template v-slot:cell(notify)="row">
+          <div v-if="row.item.details.notify" class="far fa-comment" style="color:green"></div>
+          <div v-else class="fa fa-comment-slash" style="color:red"></div>
+        </template>
         <template v-slot:cell(details)="row">
             <button class="btn btn-secondary ml-auto" role="button" v-b-modal.mealEditorModal @click="editorMode='Edit'; editRow=row">
               <div class="fa fa-edit"></div>
@@ -202,6 +208,20 @@ Vue.component('meals', {
             type="number"
             required
           ></b-form-input>
+        </b-form-group>
+        <b-form-group
+          :state="mealEditorState.notify"
+          label="Notify on Telegram"
+          label-for="notify-checkbox"
+          invalid-feedback="notify is required"
+        >
+          <b-form-checkbox
+            id="notify-checkbox"
+            v-model="mealEditor.notify"
+            :state="mealEditorState.notify"
+            type="checkbox"
+            required
+          ></b-form-checkbox>
         </b-form-group>
     </form>
   </b-modal>

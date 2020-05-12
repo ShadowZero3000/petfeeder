@@ -70,7 +70,7 @@ class Manager(object):
             self.action("feed", **event.details())
 
         if event.__class__ == events.HealthCheck:
-            self.action("healthcheck", {"event": event})
+            self.action("healthcheck", **{"event": event})
 
     def get_events(self):
         return self.scheduler.scheduled_events
