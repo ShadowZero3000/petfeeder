@@ -4,3 +4,4 @@
 - Make the pins load from something other than environment maybe?
 - Add image recognition to verify that food was dispensed
 - Add "authenticated users" to the bot so that any random stranger can't start the feeder
+- Vendor all the javascript
