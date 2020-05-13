@@ -89,6 +89,8 @@ class Web():
                 'tools.staticdir.on': True,
                 'tools.staticdir.root': os.path.abspath(os.getcwd()),
                 'tools.trailing_slash.on': False,
+                'tools.caching.on': True,
+                'tools.expires.secs': 60*60*72  # expire in 3 days
             }
         })
 
