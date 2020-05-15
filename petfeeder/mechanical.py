@@ -36,8 +36,8 @@ class ReedSwitch(threading.Thread):
 # Not sure this needs a thread
 class Feeder():
     def __init__(self, manager, feed_pin, read_pin, max_cycle_time=5):
-        self._feed_pin = feed_pin
-        self._read_pin = read_pin
+        self._feed_pin = int(feed_pin)
+        self._read_pin = int(read_pin)
         self.initialize_feeder()
 
         self._reed_switch = ReedSwitch(self._read_pin)

@@ -24,7 +24,7 @@ class Manager(object):
         # Raspi pin to activate to trigger the feeder
         feed_pin = self.store.data["settings"]["feed_pin"]
 
-        self.feeder = Feeder(self, listen_pin, feed_pin)
+        self.feeder = Feeder(self, feed_pin, listen_pin)
         self.integrations = {}
 
         store_integrations = self.store.data.get("integrations")
