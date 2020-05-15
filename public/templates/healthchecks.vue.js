@@ -130,8 +130,8 @@ Vue.component('healthchecks', {
 <template>
   <b-container-fluid>
     <div class="row">
-      <div class="col col-sm-8"><h1>Health Check Schedule</h1></div>
-      <div class="col col-sm-2">
+      <div class="col-md-9 mr-auto"><h1>Health Check Schedule</h1></div>
+      <div class="col-md-3">
         <button class="btn btn-success btn-lg btn-block" role="button" @click="editorMode='Add'" v-b-modal.healthCheckEditorModal>Add New</button>
       </div>
       <!-- <div class="col col-sm-2">

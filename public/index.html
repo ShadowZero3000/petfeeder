@@ -7,29 +7,39 @@
     <link rel="stylesheet" href="vendor/bootstrap-v4.5.0/bootstrap.min.css" />
     <link rel="stylesheet" href="vendor/bootstrap-vue-v2.14.0/bootstrap-vue.css" />
 
-
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
   </head>
   <body>
     <div class="container-fluid">
       <div id="vuewrapper" v-cloak>
-        <b-navbar toggleable="lg" type="dark" variant="dark">
+        <b-navbar toggleable="sm" type="dark" variant="dark">
           <b-navbar-brand href="#meals">Pet Feeder</b-navbar-brand>
-
-              <b-navbar-nav>
-                <b-nav-item>
-                  <router-link class=" btn btn-secondary" to="meals" active-class="active btn-success">Meals</router-link>
-                </b-nav-item>
-                <b-nav-item>
-                  <router-link class=" btn btn-secondary" to="healthchecks" active-class="active btn-success">Health Checks</router-link>
-                </b-nav-item>
+            <b-navbar-toggle target="sandwich-menu">
+              <template v-slot:default="{ expanded }">
+                <div class="fa fa-bars" style="padding: 3.5px"></div>
+                <b-icon v-if="expanded" icon="chevron-bar-up"></b-icon>
+                <b-icon v-else icon="chevron-bar-down"></b-icon>
+              </template>
+            </b-navbar-toggle>
+            <b-collapse is-nav id="sandwich-menu" >
+              <b-navbar-nav class="nav-pills nav mr-auto" fill=true>
+                <li class="nav-item mr-1 mt-1">
+                  <router-link class="nav-link btn-secondary" to="meals" active-class="active btn-success">Meals
+                  </router-link>
+                </li>
+                <li class="nav-item mr-1 mt-1">
+                  <router-link class="nav-link btn-secondary" to="healthchecks" active-class="active btn-success">Health Checks
+                  </router-link>
+                </li>
               </b-navbar-nav>
-              <b-navbar-nav class="ml-auto">
-                <b-nav-item>
-                  <router-link class="btn btn-secondary" to="settings" active-class="active btn-success">
+              <b-navbar-nav class="nav-pills nav ml-auto" fill=true >
+                <li class="nav-item mr-1 mt-1">
+                  <router-link class="nav-link btn-secondary" to="settings" active-class="active btn-success">
                     <div class="fa fa-cogs" style="padding: 3.5px"></div>
                   </router-link>
-                </b-nav-item>
+                </li>
               </b-navbar-nav>
+            </b-collapse>
         </b-navbar>
 
         <router-view></router-view>
