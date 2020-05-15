@@ -144,7 +144,7 @@ class Web():
         })
 
         cherrypy.config.update({
-            # 'engine.autoreload.on': False,  # Enable for development
+            'engine.autoreload.on': False,  # Enable for development
             'log.access_file': '',
             'log.error_file': '',
             'log.screen': False,
