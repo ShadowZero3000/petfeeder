@@ -23,14 +23,9 @@ A Healthchecks.io account (optional) for alerts when it goes down.
 
 - Set up your Pi as per usual
 - Checkout this repo on the Pi in /opt/petfeeder (Or elsewhere, but up to you to fix paths)
-- Edit /opt/petfeeder/envfile, put in:
-
-    ```
-    TELEGRAM_API_TOKEN=_fill this in_
-    TELEGRAM_BROADCAST_ID=_fill this in_
-    ```
 - Run bash /opt/petfeeder/install/install.sh, or do what it does yourself
 - Reboot the pi and cross your fingers (Or `systemctl daemon-reload` and `systemctl start petfeeder`)
+- Load up the pi's IP in a browser, and configure the Telegram integration, Healthchecks, and meals as you desire
 
 
 ## TODO

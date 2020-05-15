@@ -2,7 +2,7 @@ import cherrypy
 import json
 from petfeeder.scheduler import TimeConverter
 from petfeeder import events
-import logging
+from petfeeder import integrations
 
 
 # Dummy webserver for the root entity
@@ -28,13 +28,15 @@ class APIServer(object):
         'error_page.400': jsonify_error,
         'error_page.405': jsonify_error,
         'error_page.406': jsonify_error,
-        'error_page.411': jsonify_error
+        'error_page.411': jsonify_error,
+        'error_page.415': jsonify_error
     }
 
     def __init__(self, manager):
         self.endpoints = {
             "event": EventPrimaryEndpoint(manager),
-            "feed": FeedEndpoint(manager)
+            "feed": FeedEndpoint(manager),
+            "integration": IntegrationEndpoint(manager),
         }
 
     def _cp_dispatch(self, vpath):
@@ -43,6 +45,9 @@ class APIServer(object):
 
         if len(vpath) > 0 and vpath[0].lower() == 'feed':
             return self.endpoints["feed"]
+
+        if len(vpath) > 0 and vpath[0].lower() == 'integration':
+            return self.endpoints["integration"]
 
         return vpath
 
@@ -252,3 +257,70 @@ class HealthCheckEndpoint(EventCRUD):
                 )
             return value
         return super().sanitize(key, value)
+
+
+@cherrypy.tools.json_in()
+@cherrypy.tools.json_out()
+@cherrypy.popargs("integration_name")
+class IntegrationEndpoint():
+    exposed = True
+
+    def __init__(self, manager):
+        self.manager = manager
+
+    def GET(self, integration_name=None):
+        result = []
+        for name, integration_class in \
+                integrations.available_integrations().items():
+
+            if integration_name is None or integration_name == name:
+                integration = {
+                    "name": name,
+                    "parameters": integration_class.parameters,
+                    "enabled": name in self.manager.integrations
+                }
+                if integration["enabled"]:
+                    integration["details"] = \
+                        self.manager.integrations[name].web_details()
+                result.append(integration)
+        return result
+
+    def PUT(self, integration_name=None):
+        if integration_name is None:
+            message = "Must select integration to edit"
+            raise cherrypy.HTTPError(406, message=message)
+
+        integration_name = integration_name.lower()
+
+        available_integrations = integrations.available_integrations()
+        if integration_name not in available_integrations:
+            message = "Integration not available"
+            raise cherrypy.HTTPError(406, message=message)
+
+        input_json = cherrypy.request.json
+
+        requested_details = {}
+
+        changes = False
+        for key, value in input_json.items():
+            for param in available_integrations[integration_name].parameters:
+                if key.lower() != param:
+                    continue
+                try:
+                    # Class method on the integration to sanitize values
+                    requested_details[key] = \
+                        available_integrations[integration_name]\
+                        .sanitize(param, value)
+                except Exception as e:
+                    message = "Invalid value for %s: %s" % (key, str(e))
+                    raise cherrypy.HTTPError(400, message=message)
+        # Consider making this a manager action instead of a direct call
+        # The integration is enabled
+        self.manager.integrations[integration_name].reconfigure(
+            requested_details)
+
+        result = {"success": True, "changes": changes}
+        return result
+
+# TODO: Settings endpoint so you can adjust timezone
+# But....that's a lot of effort for how much time I want to devote to it

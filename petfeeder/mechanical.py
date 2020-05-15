@@ -38,9 +38,18 @@ class Feeder():
     def __init__(self, manager, feed_pin, read_pin, max_cycle_time=5):
         self._feed_pin = feed_pin
         self._read_pin = read_pin
+        self.initialize_feeder()
+
         self._reed_switch = ReedSwitch(self._read_pin)
         self._max_cycle_time = max_cycle_time
         self.manager = manager
+
+    def initialize_feeder(self):
+        GPIO.setwarnings(False)    # Ignore warning for now
+        GPIO.setmode(GPIO.BOARD)   # Use physical pin numbering
+
+        # Make sure it's off when we start
+        GPIO.setup(self._feed_pin, GPIO.OUT, initial=GPIO.HIGH)
 
     def wait_until_feed_stops(self):
         while not self._reed_switch.triggered:
@@ -97,10 +106,3 @@ class Feeder():
 #         sleep(0.01)
 #     print("Servings total: %s" % servings)
 #     return servings
-
-def initialize_feeder(manager, listen_pin, feed_pin):
-    GPIO.setwarnings(False)    # Ignore warning for now
-    GPIO.setmode(GPIO.BOARD)   # Use physical pin numbering
-
-    # Make sure it's off when we start
-    GPIO.setup(feed_pin, GPIO.OUT, initial=GPIO.HIGH)

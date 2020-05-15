@@ -106,7 +106,6 @@ class TimeConverter():
 
             # unknown timestamp format
             raise Exception("Invalid time string")
-        info(timestamp)
         return timestamp.replace(tzinfo=self.tz).astimezone(pytz.utc)
 
     def timestamp_to_local_string(self, timestamp, fmt="%-I:%M %p"):

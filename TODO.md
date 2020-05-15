@@ -1,7 +1,4 @@
 - Make a log of when we fed, and put that in the web UI
-- Add edit functionality to the web UI (Partially complete)
-- Add telegram credential edit to the web UI (and remove envfile)
-- Make the pins load from something other than environment maybe?
+- Add edit functionality to the web UI for settings like the pinout
 - Add image recognition to verify that food was dispensed
 - Add "authenticated users" to the bot so that any random stranger can't start the feeder
-- Vendor all the javascript

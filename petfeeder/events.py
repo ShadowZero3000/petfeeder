@@ -61,7 +61,7 @@ class HealthCheck(Event):
         self.notify = notify
 
     def run(self):
-        info("Healthcheck started")
+        info("Healthcheck started: %s" % self.name)
         try:
             urllib.request.urlopen(
                 "https://hc-ping.com/%s" % self.check_id,

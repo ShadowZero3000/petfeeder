@@ -3,7 +3,6 @@ import jsonpickle
 
 from logging import error, debug, info
 import pickle
-import os
 
 
 # This is a Singleton object so that you can load it up anywhere
@@ -32,15 +31,13 @@ class Store(object):
                     name="Daily"
                 ),
                 Meal("7:00 AM", servings=1, name="Default")
-            ]
+            ],
+            "integrations": {},
+            "settings": {
+                "listen_pin": 12,
+                "feed_pin": 11
+            }
         }
-
-        if os.getenv("TELEGRAM_API_TOKEN", None) is not None:
-            defaults["telegram_api_token"] = os.getenv("TELEGRAM_API_TOKEN")
-
-        if os.getenv("TELEGRAM_BROADCAST_ID", None) is not None:
-            defaults["telegram_broadcast_id"] = \
-                os.getenv("TELEGRAM_BROADCAST_ID")
 
         for key, value in defaults.items():
             if key not in self.data:

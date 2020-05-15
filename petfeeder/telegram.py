@@ -15,6 +15,7 @@ class Telegram(threading.Thread):
         self._broadcast_channel_id = broadcast_channel_id
 
         self.bot = telebot.TeleBot(self._api_token)
+        self.stop_polling = False
 
         self.start()
 
@@ -24,7 +25,13 @@ class Telegram(threading.Thread):
                 self.bot.polling(none_stop=False, interval=0, timeout=20)
             except Exception as err:
                 error(err)
+            if self.stop_polling:
+                break
             sleep(1)
+
+    def stop(self):
+        self.stop_polling = True
+        self.bot.stop_polling()
 
     def message(self, msg):
         self.bot.send_message(self._broadcast_channel_id, msg)
