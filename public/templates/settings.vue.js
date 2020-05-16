@@ -92,7 +92,11 @@ Vue.component('settings', {
                   v-model="detail.value"
                   :state="detail.value"
                   required
+                  :aria-describedby="detail.name+'-description'"
                 ></b-form-input>
+                <small :id="detail.name+'-description'" class="text-muted">
+                  {{ detail.description }}
+                </small>
               </b-form-group>
             </span>
             <b-button type="submit" variant="primary" v-model="integration.name">Submit</b-button>
