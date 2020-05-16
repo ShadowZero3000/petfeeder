@@ -27,7 +27,7 @@ Vue.component('meals', {
         .get('//'+window.location.host+'/api/event/meal')
         .then(response => {
           me = this
-          this.events = response.data
+          this.events = _.sortBy(response.data, ['details.time', 'details.name'])
         })
     },
     feed() {

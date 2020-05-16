@@ -27,7 +27,7 @@ Vue.component('healthchecks', {
         .get('//'+window.location.host+'/api/event/healthcheck')
         .then(response => {
           me = this
-          this.events = response.data
+          this.events = _.sortBy(response.data, ['details.time', 'details.name'])
         })
     },
     remove(row) {

@@ -73,7 +73,7 @@ Vue.component('settings', {
 
           <form ref="EditorForm" @submit.stop.prevent="handleIntegrationSubmit" v-model="integration">
             <div class="alert alert-danger" v-if="errorString">{{errorString}}</div>
-            <span v-for="detail,key in integration.details">
+            <span v-for="detail,key in _.sortBy(integration.details, ['name'])">
               <b-form-group
                 :state="detail.value"
                 :label="detail.name"
