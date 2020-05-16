@@ -1,4 +1,3 @@
 - Make a log of when we fed, and put that in the web UI
 - Add edit functionality to the web UI for settings like the pinout
 - Add image recognition to verify that food was dispensed
-- Add "authenticated users" to the bot so that any random stranger can't start the feeder

@@ -34,9 +34,7 @@ There's a todo file, but also I need to write more documentation, specifically h
 
 ## Important security notice
 
-At the moment this does ZERO to verify that users in Telegram are authorized to do things, so if anyone chats up your bot, they could....feed your pets, I guess. (Or delete your schedules, or get your healthcheck unique url). All of this seems sufficiently low risk that I'll come back and fix it later (Adding a simple "What's the password" type thing).
-
-However, and more importantly: This starts up a webserver on the Raspberry Pi on port 80 (Not SSL because I'm lazy) which grants full access to manage/read schedules and activate the feeder. DO NOT PUT THIS ON THE FUCKING INTERNET.
+This starts up a webserver on the Raspberry Pi on port 80 (Not SSL because I'm lazy) which grants full access to manage/read schedules and activate the feeder. DO NOT PUT THIS ON THE FUCKING INTERNET.
 
 I take zero responsibility for any "bad things" that may occur due to this.
 
