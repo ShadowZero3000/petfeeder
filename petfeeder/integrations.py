@@ -13,7 +13,8 @@ def available_integrations():
 
 
 class TelegramIntegration():
-    parameters = ['enabled', 'api_key', 'broadcast_id']
+    # TODO: Maybe move this to a function?
+    parameters = ['enabled', 'api_key', 'broadcast_id', 'login_password']
 
     def __init__(self, manager, **kwargs):
         self.manager = manager
@@ -21,6 +22,8 @@ class TelegramIntegration():
         self.api_key = kwargs.get('api_key', None)
         self.broadcast_id = kwargs.get('broadcast_id', None)
         self.enabled = kwargs.get('enabled', False)
+        self.login_password = kwargs.get('login_password', "No password set")
+        self.authenticated_users = kwargs.get('authenticated_users', [])
 
         self.commands = {
             "help": {
@@ -54,6 +57,8 @@ class TelegramIntegration():
             'api_key': self.api_key,
             'broadcast_id': self.broadcast_id,
             'enabled': self.enabled,
+            'login_password': self.login_password,
+            'authenticated_users': self.authenticated_users
         }
 
     def web_details(self):
@@ -75,6 +80,12 @@ class TelegramIntegration():
                 'description': 'Whether this integration should be used',
                 'type': 'bool',
                 'value': self.enabled
+            },
+            'login_password': {
+                'name': 'Login password',
+                'description': 'The password users must give, along with /login, to use this bot',
+                'value': self.login_password,
+                'type': 'password'
             }
         }
 
@@ -96,6 +107,12 @@ class TelegramIntegration():
             changes = True
             self.enabled = details["enabled"]
 
+        if details.get("login_password") is not None \
+                and details["login_password"] != self.login_password:
+
+            changes = True
+            self.login_password = details["login_password"]
+
         if changes:
             info("Reconfiguring Telegram Integration")
             self.stop()
@@ -115,12 +132,20 @@ class TelegramIntegration():
             if re.match(r'^[0-9]+:[A-z0-9_-]{35}$', value) is None:
                 raise Exception('Invalid Telegram api_key value.')
             return str(value)
+
         if key == 'broadcast_id':
             if re.match(r'^-?[0-9]*$', value) is None:
                 raise Exception('Invalid Telegram broadcast_id value.')
             return int(value)
+
         if key == 'enabled':
             return bool(value)
+
+        if key == 'login_password':
+            if re.match(r'^[A-z0-9_ -]+$', value) is None:
+                raise Exception('Invalid Telegram login_password value.')
+            return str(value)
+
         raise Exception('Invalid key for Telegram integration: %s' % key)
 
     def message(self, message):
@@ -138,9 +163,13 @@ class TelegramIntegration():
         self.telegram = Telegram(self.api_key, self.broadcast_id)
         bot = self.telegram.bot
 
-        @bot.message_handler(commands=['help'])
         @bot.channel_post_handler(commands=['help'])
+        def bot_channel_help(message):
+            self.telegram.respond(message, "Try asking in a direct message")
+
+        @bot.message_handler(commands=['help'])
         def bot_help(message):
+            info("Got message help")
             args = message.text.split(" ")
 
             if len(args) == 1:
@@ -162,20 +191,33 @@ class TelegramIntegration():
                     )
             self.telegram.respond(message, help_text)
 
+        @bot.message_handler(commands=['authenicate', 'login', 'start'],
+                             regexp='^/[^ ]+ [A-z0-9 _-]+$')
+        def bot_auth_request(message):
+            self.telegram.respond(message, "Checking your password...")
+            password = " ".join(message.text.split(" ")[1:])
+            if password == self.login_password:
+                self.authenticated_users.append(message.chat.id)
+                self.manager.action("save_integrations")
+                self.telegram.respond(
+                    message, 'Acknowledged. You may now give me commands.')
+
         @bot.message_handler(commands=['feed'],
                              regexp='^/[a-z]+ [0-9]+$')
-        @bot.channel_post_handler(commands=['start', 'feed'],
-                                  regexp='^/[a-z]+ [0-9]+$')
         def bot_feed_request(message):
+            if message.chat.id not in self.authenticated_users:
+                return
+
             servings = int(message.text.split(" ")[1])
 
             self.telegram.respond(message, "Acknowledged")
             self.manager.action("feed", servings=servings)
 
         @bot.message_handler(commands=['schedule'], regexp='^/schedule .*$')
-        @bot.channel_post_handler(commands=['schedule'],
-                                  regexp='^/schedule .*$')
         def bot_schedule_show(message):
+            if message.chat.id not in self.authenticated_users:
+                return
+
             args = message.text.split(" ")
 
             if(args[1] == "show"):

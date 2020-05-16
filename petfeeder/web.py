@@ -312,7 +312,7 @@ class IntegrationEndpoint():
                         available_integrations[integration_name]\
                         .sanitize(param, value)
                 except Exception as e:
-                    message = "Invalid value for %s: %s" % (key, str(e))
+                    message = "Error updating %s: %s" % (key, str(e))
                     raise cherrypy.HTTPError(400, message=message)
         # Consider making this a manager action instead of a direct call
         # The integration is enabled
