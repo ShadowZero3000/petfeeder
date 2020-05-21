@@ -38,3 +38,7 @@ class Telegram(threading.Thread):
 
     def respond(self, original, msg):
         self.bot.send_message(original.chat.id, msg)
+
+    def send_photo(self, filename):
+        with open(filename, 'rb') as photo:
+            self.bot.send_photo(self._broadcast_channel_id, photo)

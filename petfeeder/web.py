@@ -37,17 +37,13 @@ class APIServer(object):
             "event": EventPrimaryEndpoint(manager),
             "feed": FeedEndpoint(manager),
             "integration": IntegrationEndpoint(manager),
+            "photo": PhotoEndpoint(manager),
         }
 
     def _cp_dispatch(self, vpath):
-        if len(vpath) > 0 and vpath[0].lower() == 'event':
-            return self.endpoints["event"]
-
-        if len(vpath) > 0 and vpath[0].lower() == 'feed':
-            return self.endpoints["feed"]
-
-        if len(vpath) > 0 and vpath[0].lower() == 'integration':
-            return self.endpoints["integration"]
+        for name, endpoint in self.endpoints.items():
+            if len(vpath) > 0 and vpath[0].lower() == name:
+                return endpoint
 
         return vpath
 
@@ -65,6 +61,19 @@ class FeedEndpoint(object):
 
     def POST(self, servings=1):
         self.manager.action("feed", servings=servings)
+        return {"success": True}
+
+
+@cherrypy.tools.json_in()
+@cherrypy.tools.json_out()
+class PhotoEndpoint(object):
+    exposed = True
+
+    def __init__(self, manager):
+        self.manager = manager
+
+    def POST(self):
+        self.manager.action("photo")
         return {"success": True}
 
 

@@ -22,9 +22,12 @@ A Healthchecks.io account (optional) for alerts when it goes down.
 ## Instructions
 
 - Set up your Pi as per usual
+  - Be sure to enable the camera if you're going to use it with. Use `raspi-config`
 - Checkout this repo on the Pi in /opt/petfeeder (Or elsewhere, but up to you to fix paths)
-- Run bash /opt/petfeeder/install/install.sh, or do what it does yourself
-- Reboot the pi and cross your fingers (Or `systemctl daemon-reload` and `systemctl start petfeeder`)
+- Run `bash /opt/petfeeder/install/install.sh`, or do what it does yourself
+- Run `systemctl daemon-reload`
+- Run `systemctl enable petfeeder`
+- Reboot the pi and cross your fingers (Or `systemctl start petfeeder`)
 - Load up the pi's IP in a browser, and configure the Telegram integration, Healthchecks, and meals as you desire
 
 ## Important security notice
@@ -82,4 +85,4 @@ breadboard channel -> 1.2k Ohm resistor
 I've put the entire circuit diagram into a visual format in case you want to follow along. It could be simpler I'm sure (And I could totally make a PCB for this, I just don't know if I need to at this point).
 
 ![Visual circuit](docs/Device_diagram.png)
-![Raw circuit diagram](docs/Circuit_diagram.png)
+![Raw circuit diagram](docs/Device_circuit.png)

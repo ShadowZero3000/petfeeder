@@ -1,5 +1,7 @@
 from logging import info
+from time import sleep
 import re
+import picamera
 
 from petfeeder import events
 from petfeeder.telegram import Telegram
@@ -8,7 +10,8 @@ from petfeeder.scheduler import TimeConverter
 
 def available_integrations():
     return {
-        "telegram": TelegramIntegration
+        "telegram": TelegramIntegration,
+        "camera": CameraIntegration,
     }
 
 
@@ -154,6 +157,12 @@ class TelegramIntegration():
 
         self.telegram.message(message)
 
+    def send_photo(self, filename):
+        if not self.enabled or filename is None:
+            return
+
+        self.telegram.send_photo(filename)
+
     def start(self):
         if not self.enabled:
             info("Telegram integration not enabled")
@@ -271,3 +280,71 @@ class TelegramIntegration():
         for idx, event in enumerate(self.manager.scheduler.scheduled_events):
             if idx == int(event_index):
                 return event
+
+
+class CameraIntegration:
+
+    # TODO: Maybe move this to a function?
+    parameters = ['enabled']
+
+    def __init__(self, manager, **kwargs):
+        self.manager = manager
+
+        self.enabled = kwargs.get('enabled', False)
+
+    def details(self):
+        return {
+            'enabled': self.enabled
+        }
+
+    def web_details(self):
+        return {
+            'enabled': {
+                'name': 'Enabled',
+                'description': 'Whether this integration should be used',
+                'type': 'bool',
+                'value': self.enabled
+            }
+        }
+
+    def reconfigure(self, details):
+        changes = False
+        if details.get("enabled") is not None \
+                and details["enabled"] != self.enabled:
+
+            changes = True
+            self.enabled = details["enabled"]
+
+        if changes:
+            info("Reconfiguring Camera Integration")
+            # No actions necessary, enabled flag is all that matters
+            self.manager.action("save_integrations")
+
+    @staticmethod
+    def sanitize(key, value):
+        if key == 'enabled':
+            return bool(value)
+
+        raise Exception('Invalid key for Camera integration: %s' % key)
+
+    def start(self):
+        if not self.enabled:
+            info("Camera integration not enabled")
+            return
+
+        info("Camera integration is available")
+        # Nothing to do
+
+    def take_picture(self):
+        if not self.enabled:
+            return
+
+        # Using with here causes the camera object to get closed out properly
+        with picamera.PiCamera() as camera:
+            camera.resolution = (1024, 768)
+            camera.start_preview()
+            # Camera warm-up time
+            sleep(2)
+            camera.capture('still.jpg')
+
+        return 'still.jpg'

@@ -66,35 +66,35 @@ Vue.component('settings', {
         <button class="btn btn-primary btn-lg btn-block" role="button" v-on:click="feed">Feed now</button>
       </div> -->
     </div>
-    <div v-if="integrations.length > 0">
-      <div v-for="integration in integrations" class="card" style="width: 25rem">
+    <div class="row" v-if="integrations.length > 0">
+      <div v-for="integration in integrations" class="card mr-1 mb-1" style="width: 25rem">
         <div class="card-body">
           <h5 class="card-title">{{_.startCase(integration.name)}}</h5>
 
-          <form ref="EditorForm" @submit.stop.prevent="handleIntegrationSubmit" v-model="integration">
+          <form :ref="integration.name+'EditorForm'" @submit.stop.prevent="handleIntegrationSubmit" v-model="integration">
             <div class="alert alert-danger" v-if="errorString">{{errorString}}</div>
             <span v-for="detail,key in _.sortBy(integration.details, ['name'])">
               <b-form-group
                 :state="detail.value"
                 :label="detail.name"
-                :label-for="detail.name+'-input'"
+                :label-for="integration.name + detail.name + '-input'"
               >
                 <b-form-checkbox
                   v-if="detail.type == 'bool'"
-                  id="notify-checkbox"
+                  :id="integration.name + detail.name + '-checkbox'"
                   v-model="detail.value"
                   :state="detail.value"
                   type="checkbox"
                 />
                 <b-form-input
                   v-else
-                  :id="detail.name+'-input'"
+                  :id="integration.name + detail.name + '-input'"
                   v-model="detail.value"
                   :state="detail.value"
                   required
-                  :aria-describedby="detail.name+'-description'"
+                  :aria-describedby="integration.name + detail.name + '-description'"
                 ></b-form-input>
-                <small :id="detail.name+'-description'" class="text-muted">
+                <small :id="integration.name + detail.name+'-description'" class="text-muted">
                   {{ detail.description }}
                 </small>
               </b-form-group>

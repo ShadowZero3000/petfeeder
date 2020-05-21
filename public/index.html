@@ -34,7 +34,12 @@
               </b-navbar-nav>
               <b-navbar-nav class="nav-pills nav ml-auto" fill=true >
                 <li class="nav-item mr-1 mt-1">
-                  <router-link class="nav-link btn-secondary" to="settings" active-class="active btn-success">
+                  <button class="nav-link btn btn-primary w-100" role="button" v-on:click="take_photo()">
+                    <div class="fa fa-camera" style="padding: 3.5px"></div>
+                  </button>
+                </li>
+                <li class="nav-item mr-1 mt-1">
+                  <router-link class="nav-link btn btn-secondary" to="settings" active-class="active btn-success">
                     <div class="fa fa-cogs" style="padding: 3.5px"></div>
                   </router-link>
                 </li>

@@ -9,5 +9,14 @@ const router=new VueRouter({
 
 var vm = new Vue({
   router,
-  el: '#vuewrapper'
+  el: '#vuewrapper',
+  methods: {
+    take_photo() {
+      axios
+        .post('//'+window.location.host+'/api/photo', {})
+        .then(response => {
+          me = this
+        })
+    }
+  }
 })

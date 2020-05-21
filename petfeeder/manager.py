@@ -59,15 +59,35 @@ class Manager(object):
     #       thing or alternatively have them register with the manager when
     #       there's an action they care about. That would clean up this code
     def action(self, action, **kwargs):
+        # Direct commands
         if action == "feed":
-            if kwargs.get("notify", False) and "telegram" in self.integrations:
+            if kwargs.get("notify", False):
                 self.integrations["telegram"].message(
                     "Activating feeder for %s - %s times" % (
                         kwargs["name"], str(kwargs["servings"])
                     )
                 )
-            self.feeder.feed(kwargs["servings"])
 
+            self.feeder.feed(kwargs["servings"])
+            if kwargs.get("notify", False):
+                self.action("photo")
+
+        if action == "healthcheck":
+            event = kwargs["event"]
+            if event.notify:
+                self.integrations["telegram"].message(
+                    "Activating healthcheck %s" % event.name
+                )
+            event.run()
+
+        if action == "photo":
+            # Take and send a picture afterwards
+            # If the integration is disabled, the picture will be None,
+            # and sending will do nothing
+            picture = self.integrations["camera"].take_picture()
+            self.integrations["telegram"].send_photo(picture)
+
+        # Event management
         if action == "add_event":
             info("Adding event %s at %s" % (
                 kwargs["event"].name, kwargs["event"].time)
@@ -80,20 +100,13 @@ class Manager(object):
         if action == "update_event":
             self.scheduler.update_recurring(kwargs["event"])
 
+        # Communication
         if action == "warning":
-            if "telegram" in self.integrations:
-                self.integrations["telegram"].message(
-                    "WARNING: %s" % kwargs["message"]
-                )
+            self.integrations["telegram"].message(
+                "WARNING: %s" % kwargs["message"]
+            )
 
-        if action == "healthcheck":
-            event = kwargs["event"]
-            if event.notify and "telegram" in self.integrations:
-                self.integrations["telegram"].message(
-                    "Activating healthcheck %s" % event.name
-                )
-            event.run()
-
+        # Integration management
         if action == "save_integrations":
             info("Saving integration settings")
             integration_settings = {}
