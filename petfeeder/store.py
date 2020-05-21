@@ -34,7 +34,7 @@ class Store(object):
             ],
             "integrations": {},
             "settings": {
-                "listen_pin": 12,
+                "listen_pin": 13,
                 "feed_pin": 11
             }
         }
