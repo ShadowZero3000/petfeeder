@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO  # Import Raspberry Pi GPIO library
 import threading  # Allow for threading
 
 from logging import debug, error
-from time import sleep
+from time import monotonic, sleep
 
 
 class ReedSwitch(threading.Thread):
@@ -52,9 +52,15 @@ class Feeder():
         GPIO.setup(self._feed_pin, GPIO.OUT, initial=GPIO.LOW)
 
     def wait_until_feed_stops(self):
+        # Times out so we don't run endlessly on accident
+        deadline = monotonic() + self._max_cycle_time
         while not self._reed_switch.triggered:
+            if monotonic() > deadline:
+                raise Exception("Reed switch didn't detect properly")
             sleep(0.01)
         while self._reed_switch.triggered:
+            if monotonic() > deadline:
+                raise Exception("Reed switch didn't detect properly")
             sleep(0.01)
 
     def feed(self, servings):
@@ -66,13 +72,7 @@ class Feeder():
             debug("Starting feed motor")
             GPIO.output(self._feed_pin, GPIO.HIGH)
 
-            # This threads so it can time out safely.
-            # We don't want to run endlessly on accident.
-            wait_thread = threading.Thread(target=self.wait_until_feed_stops)
-            wait_thread.start()
-            wait_thread.join(timeout=self._max_cycle_time)
-            if wait_thread.isAlive():
-                raise Exception("Reed switch didn't detect properly")
+            self.wait_until_feed_stops()
 
             GPIO.output(self._feed_pin, GPIO.LOW)
             debug("Feed motor stopped")

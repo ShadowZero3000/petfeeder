@@ -14,7 +14,10 @@ class Telegram(threading.Thread):
         self._api_token = api_token
         self._broadcast_channel_id = broadcast_channel_id
 
-        self.bot = telebot.TeleBot(self._api_token)
+        # threaded=False: the threaded poller in this telebot version leaks a
+        # thread every time polling fails on a network error, until the
+        # process can't start any more threads
+        self.bot = telebot.TeleBot(self._api_token, threaded=False)
         self.stop_polling = False
 
         self.start()
