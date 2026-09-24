@@ -7,7 +7,7 @@ from petfeeder import integrations
 
 import cherrypy
 
-from logging import info
+from logging import info, error
 import os
 import sys
 
@@ -29,11 +29,8 @@ class Manager(object):
 
         store_integrations = self.store.data.get("integrations")
 
-        for name in integrations.available_integrations():
-            integration_class = getattr(
-                integrations,
-                "%sIntegration" % name.title()
-            )
+        for name, integration_class in \
+                integrations.available_integrations().items():
             if name not in store_integrations:
                 # Ensure that every integration has a reference
                 self.integrations[name] = integration_class(self)
@@ -68,9 +65,30 @@ class Manager(object):
                     )
                 )
 
+            food_check = self.integrations["food_check"]
+            camera = self.integrations["camera"]
+            stamp = before = None
+            if food_check.enabled and camera.enabled:
+                try:
+                    stamp = food_check.new_capture()
+                    before = camera.take_picture(
+                        food_check.capture_path(stamp, "before"))
+                except Exception as e:
+                    error("Food check failed before feeding: %s" % str(e))
+
             self.feeder.feed(kwargs["servings"])
+
+            after, score = self.check_food(stamp, before)
+
             if kwargs.get("notify", False):
-                self.action("photo")
+                if after is None:
+                    self.action("photo")
+                else:
+                    caption = None
+                    if score is not None:
+                        caption = "Change score: %.1f%%" % (score * 100)
+                    self.integrations["telegram"].send_photo(
+                        after, caption=caption)
 
         if action == "healthcheck":
             event = kwargs["event"]
@@ -113,6 +131,37 @@ class Manager(object):
             for name, integration in self.integrations.items():
                 integration_settings[name] = integration.details()
             self.store.set('integrations', integration_settings)
+
+    def check_food(self, stamp, before):
+        """
+        Takes the after photo and scores it against the before photo.
+        Returns (after photo, score); either may be None. Never raises, so
+        a broken check can't break feeding.
+        """
+        if before is None:
+            return None, None
+
+        food_check = self.integrations["food_check"]
+        after = score = None
+        try:
+            after = self.integrations["camera"].take_picture(
+                food_check.capture_path(stamp, "after"))
+            if after is None:
+                return None, None
+
+            score, after = food_check.check(stamp, before, after)
+
+            if food_check.food_missing(score):
+                self.action(
+                    "warning",
+                    message="No food detected after feeding — hopper may "
+                            "be empty or jammed (change score %.1f%%)"
+                            % (score * 100)
+                )
+        except Exception as e:
+            error("Food check failed: %s" % str(e))
+
+        return after, score
 
     def handle_event(self, event):
         if event.__class__ == events.Meal:

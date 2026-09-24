@@ -134,3 +134,6 @@ dmypy.json
 public/media/still.jpg
 *.pkl
 pyvenv.cfg
+
+# Food check before/after photos
+captures/

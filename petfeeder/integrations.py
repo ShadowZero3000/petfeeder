@@ -1,6 +1,8 @@
 import RPi.GPIO as GPIO  # Import Raspberry Pi GPIO library
+from datetime import datetime
 from logging import info, error
 from time import sleep
+import os
 import re
 import picamera
 
@@ -13,6 +15,7 @@ def available_integrations():
     return {
         "telegram": TelegramIntegration,
         "camera": CameraIntegration,
+        "food_check": FoodCheckIntegration,
     }
 
 
@@ -158,11 +161,11 @@ class TelegramIntegration():
 
         self.telegram.message(message)
 
-    def send_photo(self, filename):
+    def send_photo(self, filename, caption=None):
         if not self.enabled or filename is None:
             return
 
-        self.telegram.send_photo(filename)
+        self.telegram.send_photo(filename, caption=caption)
 
     def start(self):
         if not self.enabled:
@@ -338,7 +341,7 @@ class CameraIntegration:
         info("Camera integration is available")
         # Nothing to do
 
-    def take_picture(self):
+    def take_picture(self, filename='public/media/still.jpg'):
         if not self.enabled:
             return
 
@@ -350,10 +353,175 @@ class CameraIntegration:
                 camera.start_preview()
                 # Camera warm-up time
                 sleep(2)
-                camera.capture('public/media/still.jpg', format='jpeg')
+                camera.capture(filename, format='jpeg')
         except picamera.exc.PiCameraError as e:
             error("Error taking picture: %s" % str(e))
             return None
-        GPIO.output(self.light_pin, GPIO.LOW)
+        finally:
+            # Always turn the light back off, even if the camera failed
+            GPIO.output(self.light_pin, GPIO.LOW)
 
-        return 'public/media/still.jpg'
+        return filename
+
+
+class FoodCheckIntegration:
+    """
+    Compares photos taken before and after a feeding to catch an empty or
+    jammed hopper. Needs the camera integration enabled too.
+    """
+
+    # TODO: Maybe move this to a function?
+    parameters = ['enabled', 'log_only', 'threshold', 'pixel_delta',
+                  'max_captures']
+
+    capture_dir = 'captures'
+
+    def __init__(self, manager, **kwargs):
+        self.manager = manager
+
+        self.enabled = kwargs.get('enabled', False)
+        self.log_only = kwargs.get('log_only', True)
+        self.threshold = kwargs.get('threshold', 0.02)
+        self.pixel_delta = kwargs.get('pixel_delta', 25)
+        self.max_captures = kwargs.get('max_captures', 200)
+
+    def details(self):
+        return {
+            'enabled': self.enabled,
+            'log_only': self.log_only,
+            'threshold': self.threshold,
+            'pixel_delta': self.pixel_delta,
+            'max_captures': self.max_captures
+        }
+
+    def web_details(self):
+        return {
+            'enabled': {
+                'name': 'Enabled',
+                'description':
+                    'Whether this integration should be used. '
+                    'Requires the camera integration',
+                'type': 'bool',
+                'value': self.enabled
+            },
+            'log_only': {
+                'name': 'Log only',
+                'description':
+                    'Report the change score, but never send the '
+                    'empty hopper warning',
+                'type': 'bool',
+                'value': self.log_only
+            },
+            'threshold': {
+                'name': 'Threshold',
+                'description':
+                    'Warn when less than this fraction of the photo '
+                    'changes after feeding (0.02 = 2%)',
+                'value': self.threshold
+            },
+            'pixel_delta': {
+                'name': 'Pixel delta',
+                'description':
+                    'How much a pixel must change (0-255) to count '
+                    'as changed',
+                'value': self.pixel_delta
+            },
+            'max_captures': {
+                'name': 'Max captures',
+                'description':
+                    'Number of before/after photo pairs to keep in %s/'
+                    % self.capture_dir,
+                'value': self.max_captures
+            }
+        }
+
+    def reconfigure(self, details):
+        changes = False
+        for key in self.parameters:
+            if details.get(key) is not None \
+                    and details[key] != getattr(self, key):
+
+                changes = True
+                setattr(self, key, details[key])
+
+        if changes:
+            info("Reconfiguring Food Check Integration")
+            # No actions necessary, the settings are read on every feeding
+            self.manager.action("save_integrations")
+
+    @staticmethod
+    def sanitize(key, value):
+        if key in ['enabled', 'log_only']:
+            return bool(value)
+
+        if key == 'threshold':
+            try:
+                value = float(value)
+            except ValueError:
+                raise Exception('Invalid Food Check threshold value.')
+            if not 0 <= value <= 1:
+                raise Exception('Food Check threshold must be 0 to 1.')
+            return value
+
+        if key == 'pixel_delta':
+            if re.match(r'^[0-9]+$', str(value)) is None \
+                    or not 1 <= int(value) <= 255:
+                raise Exception('Food Check pixel_delta must be 1 to 255.')
+            return int(value)
+
+        if key == 'max_captures':
+            if re.match(r'^[0-9]+$', str(value)) is None \
+                    or int(value) < 1:
+                raise Exception('Food Check max_captures must be 1 or more.')
+            return int(value)
+
+        raise Exception('Invalid key for Food Check integration: %s' % key)
+
+    def start(self):
+        if not self.enabled:
+            info("Food check integration not enabled")
+            return
+
+        info("Food check integration is available")
+        # Nothing to do
+
+    def new_capture(self):
+        # Timestamp shared by a before/after pair. Sorts oldest to newest.
+        os.makedirs(self.capture_dir, exist_ok=True)
+        return datetime.now().strftime('%Y-%m-%dT%H-%M-%S')
+
+    def capture_path(self, stamp, label):
+        return os.path.join(self.capture_dir, '%s_%s.jpg' % (stamp, label))
+
+    def check(self, stamp, before, after):
+        """
+        Scores a before/after pair, adds the score to their filenames and
+        prunes old captures. Returns (score, renamed after path)
+        """
+        # Imported here so a missing numpy/Pillow only breaks the check,
+        # never the feeder itself
+        from petfeeder.vision import change_score
+
+        score = change_score(before, after, pixel_delta=self.pixel_delta)
+        info("Food check change score: %.4f (threshold %s)" % (
+            score, self.threshold))
+
+        for label, path in [('before', before), ('after', after)]:
+            scored = self.capture_path(
+                stamp, 'score%.3f_%s' % (score, label))
+            os.rename(path, scored)
+        self.prune_captures()
+
+        return score, self.capture_path(stamp, 'score%.3f_after' % score)
+
+    def food_missing(self, score):
+        return not self.log_only and score < self.threshold
+
+    def prune_captures(self):
+        files = sorted(os.listdir(self.capture_dir))
+        # Every file in a pair starts with the same timestamp
+        stamps = sorted(set(name.split('_')[0] for name in files))
+        old_stamps = set(stamps[:-self.max_captures])
+        for name in files:
+            if name.split('_')[0] in old_stamps:
+                os.remove(os.path.join(self.capture_dir, name))
