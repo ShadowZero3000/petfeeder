@@ -49,7 +49,7 @@ class Feeder():
         GPIO.setmode(GPIO.BOARD)   # Use physical pin numbering
 
         # Make sure it's off when we start
-        GPIO.setup(self._feed_pin, GPIO.OUT, initial=GPIO.HIGH)
+        GPIO.setup(self._feed_pin, GPIO.OUT, initial=GPIO.LOW)
 
     def wait_until_feed_stops(self):
         while not self._reed_switch.triggered:
@@ -64,7 +64,7 @@ class Feeder():
     def activate_feeder(self):
         try:
             debug("Starting feed motor")
-            GPIO.output(self._feed_pin, GPIO.LOW)
+            GPIO.output(self._feed_pin, GPIO.HIGH)
 
             # This threads so it can time out safely.
             # We don't want to run endlessly on accident.
@@ -74,11 +74,11 @@ class Feeder():
             if wait_thread.isAlive():
                 raise Exception("Reed switch didn't detect properly")
 
-            GPIO.output(self._feed_pin, GPIO.HIGH)
+            GPIO.output(self._feed_pin, GPIO.LOW)
             debug("Feed motor stopped")
 
         except Exception as err:
-            GPIO.output(self._feed_pin, GPIO.HIGH)
+            GPIO.output(self._feed_pin, GPIO.LOW)
             error("Error encountered. Motor stopped. Error: %s", err)
             self.manager.action("warning", message="Feed error: %s" % err)
 

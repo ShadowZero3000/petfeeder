@@ -1,4 +1,5 @@
-from logging import info
+import RPi.GPIO as GPIO  # Import Raspberry Pi GPIO library
+from logging import info, error
 from time import sleep
 import re
 import picamera
@@ -291,6 +292,8 @@ class CameraIntegration:
         self.manager = manager
 
         self.enabled = kwargs.get('enabled', False)
+        self.light_pin = kwargs.get('light_pin', 15)
+        GPIO.setup(self.light_pin, GPIO.OUT, initial=GPIO.LOW)
 
     def details(self):
         return {
@@ -339,12 +342,18 @@ class CameraIntegration:
         if not self.enabled:
             return
 
-        # Using with here causes the camera object to get closed out properly
-        with picamera.PiCamera() as camera:
-            camera.resolution = (1024, 768)
-            camera.start_preview()
-            # Camera warm-up time
-            sleep(2)
-            camera.capture('still.jpg')
+        GPIO.output(self.light_pin, GPIO.HIGH)
+        try:
+            # Using with here causes the camera object to get closed out properly
+            with picamera.PiCamera() as camera:
+                camera.resolution = (640, 480)
+                camera.start_preview()
+                # Camera warm-up time
+                sleep(2)
+                camera.capture('public/media/still.jpg', format='jpeg')
+        except picamera.exc.PiCameraError as e:
+            error("Error taking picture: %s" % str(e))
+            return None
+        GPIO.output(self.light_pin, GPIO.LOW)
 
-        return 'still.jpg'
+        return 'public/media/still.jpg'

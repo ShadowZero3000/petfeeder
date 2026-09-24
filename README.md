@@ -65,7 +65,7 @@ There are two loops in this circuit, one for powering the motor, one for control
 #### Power
 
 5v on Pi -> Relay common pin
-Relay normally closed pin -> Motor positive
+Relay normally open pin -> Motor positive
 Motor negative -> Gnd on Pi
 
 #### Control
@@ -74,6 +74,8 @@ Motor negative -> Gnd on Pi
 GPIO 11 on Pi -> Input pin 1 on Relay
 Gnd on Pi -> Gnd input on Relay
 
+![Motor circuit](docs/Motor_circuit.png)
+
 ### The reed switch circuit
 
 3v on Pi -> Reed switch input
@@ -81,6 +83,8 @@ Reed switch output -> breadboard channel
 breadboard channel -> GPIO 13 on Pi
 breadboard channel -> 1.2k Ohm resistor
 1.2k Ohm resistor -> Gnd on Pi
+
+![Reed switch circuit](docs/Reed_Switch.png)
 
 I've put the entire circuit diagram into a visual format in case you want to follow along. It could be simpler I'm sure (And I could totally make a PCB for this, I just don't know if I need to at this point).
 

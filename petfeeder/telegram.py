@@ -40,5 +40,8 @@ class Telegram(threading.Thread):
         self.bot.send_message(original.chat.id, msg)
 
     def send_photo(self, filename):
-        with open(filename, 'rb') as photo:
-            self.bot.send_photo(self._broadcast_channel_id, photo)
+        try:
+            with open(filename, 'rb') as photo:
+                self.bot.send_photo(self._broadcast_channel_id, photo)
+        except Exception as e:
+            error("Error sending photo: %s" % str(e))
